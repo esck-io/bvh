@@ -28,22 +28,22 @@ func TestBVHQuery(t *testing.T) {
 		{
 			id: 1,
 			bounds: bvh.AABB{
-				Lower: bvh.Position{-1, -1, -1},
-				Upper: bvh.Position{1, 1, 1},
+				Min: bvh.Position{-1, -1, -1},
+				Max: bvh.Position{1, 1, 1},
 			},
 		},
 		{
 			id: 2,
 			bounds: bvh.AABB{
-				Lower: bvh.Position{2, 2, 2},
-				Upper: bvh.Position{4, 4, 4},
+				Min: bvh.Position{2, 2, 2},
+				Max: bvh.Position{4, 4, 4},
 			},
 		},
 		{
 			id: 3,
 			bounds: bvh.AABB{
-				Lower: bvh.Position{5, 5, 5},
-				Upper: bvh.Position{7, 7, 7},
+				Min: bvh.Position{5, 5, 5},
+				Max: bvh.Position{7, 7, 7},
 			},
 		},
 	}
@@ -100,8 +100,8 @@ func TestBVHQuery(t *testing.T) {
 
 func TestLineSegmentIntersects(t *testing.T) {
 	b := bvh.AABB{
-		Upper: bvh.Position{3, 3, 3},
-		Lower: bvh.Position{1, 1, 1},
+		Max: bvh.Position{3, 3, 3},
+		Min: bvh.Position{1, 1, 1},
 	}
 
 	testCases := []struct {
@@ -189,8 +189,8 @@ func generateRandomPrimitives(numPrimitives int) []TestPrimitive {
 		primitives[i] = TestPrimitive{
 			id: i,
 			bounds: bvh.AABB{
-				Lower: bvh.Position{x - size, y - size, z - size},
-				Upper: bvh.Position{x + size, y + size, z + size},
+				Min: bvh.Position{x - size, y - size, z - size},
+				Max: bvh.Position{x + size, y + size, z + size},
 			},
 		}
 	}

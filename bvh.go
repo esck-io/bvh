@@ -9,8 +9,8 @@ type Position [3]float64
 type Direction [3]float64
 
 type AABB struct {
-	Upper Position `json:"upper"`
-	Lower Position `json:"lower"`
+	Max Position `json:"max"`
+	Min Position `json:"min"`
 }
 
 type Ray struct {
@@ -75,24 +75,24 @@ func (l *bvhLeaf[V]) Query(q Intersecter, out []V) []V {
 func (b *AABB) Center() Position {
 
 	center := [3]float64{}
-	center[0] = b.Lower[0] + (b.Upper[0]-b.Lower[0])/2.0
-	center[1] = b.Lower[1] + (b.Upper[1]-b.Lower[1])/2.0
-	center[2] = b.Lower[2] + (b.Upper[2]-b.Lower[2])/2.0
+	center[0] = b.Min[0] + (b.Max[0]-b.Min[0])/2.0
+	center[1] = b.Min[1] + (b.Max[1]-b.Min[1])/2.0
+	center[2] = b.Min[2] + (b.Max[2]-b.Min[2])/2.0
 	return center
 }
 
 func (b *AABB) SurfaceArea() float64 {
 	dims := [3]float64{}
-	dims[0] = b.Upper[0] - b.Lower[0]
-	dims[1] = b.Upper[1] - b.Lower[1]
-	dims[2] = b.Upper[2] - b.Lower[2]
+	dims[0] = b.Max[0] - b.Min[0]
+	dims[1] = b.Max[1] - b.Min[1]
+	dims[2] = b.Max[2] - b.Min[2]
 
 	return 2 * (dims[0]*dims[1] + dims[0]*dims[2] + dims[1]*dims[2])
 }
 
 func (b *AABB) Intersects(other *AABB) bool {
 	for i := 0; i < 3; i++ {
-		if b.Upper[i] < other.Lower[i] || b.Lower[i] > other.Upper[i] {
+		if b.Max[i] < other.Min[i] || b.Min[i] > other.Max[i] {
 			return false
 		}
 	}
@@ -100,23 +100,23 @@ func (b *AABB) Intersects(other *AABB) bool {
 }
 
 func (b *AABB) grow(other AABB) {
-	if other.Upper[0] > b.Upper[0] {
-		b.Upper[0] = other.Upper[0]
+	if other.Max[0] > b.Max[0] {
+		b.Max[0] = other.Max[0]
 	}
-	if other.Upper[1] > b.Upper[1] {
-		b.Upper[1] = other.Upper[1]
+	if other.Max[1] > b.Max[1] {
+		b.Max[1] = other.Max[1]
 	}
-	if other.Upper[2] > b.Upper[2] {
-		b.Upper[2] = other.Upper[2]
+	if other.Max[2] > b.Max[2] {
+		b.Max[2] = other.Max[2]
 	}
-	if other.Lower[0] < b.Lower[0] {
-		b.Lower[0] = other.Lower[0]
+	if other.Min[0] < b.Min[0] {
+		b.Min[0] = other.Min[0]
 	}
-	if other.Lower[1] < b.Lower[1] {
-		b.Lower[1] = other.Lower[1]
+	if other.Min[1] < b.Min[1] {
+		b.Min[1] = other.Min[1]
 	}
-	if other.Lower[2] < b.Lower[2] {
-		b.Lower[2] = other.Lower[2]
+	if other.Min[2] < b.Min[2] {
+		b.Min[2] = other.Min[2]
 	}
 }
 
@@ -126,13 +126,13 @@ func (r *Ray) Intersects(b AABB) bool {
 
 	for i := 0; i < 3; i++ {
 		if math.Abs(r.Direction[i]) < 1e-8 {
-			if r.Position[i] < b.Lower[i] || r.Position[i] > b.Upper[i] {
+			if r.Position[i] < b.Min[i] || r.Position[i] > b.Max[i] {
 				return false
 			}
 		} else {
 			invD := 1.0 / r.Direction[i]
-			t1 := (b.Lower[i] - r.Position[i]) * invD
-			t2 := (b.Upper[i] - r.Position[i]) * invD
+			t1 := (b.Min[i] - r.Position[i]) * invD
+			t2 := (b.Max[i] - r.Position[i]) * invD
 
 			if t1 > t2 {
 				t1, t2 = t2, t1
@@ -158,13 +158,13 @@ func (ls *LineSegment) Intersects(b AABB) bool {
 		direction := ls.To[i] - ls.From[i]
 
 		if math.Abs(direction) < 1e-8 {
-			if ls.From[i] < b.Lower[i] || ls.From[i] > b.Upper[i] {
+			if ls.From[i] < b.Min[i] || ls.From[i] > b.Max[i] {
 				return false
 			}
 		} else {
 			invD := 1.0 / direction
-			t1 := (b.Lower[i] - ls.From[i]) * invD
-			t2 := (b.Upper[i] - ls.From[i]) * invD
+			t1 := (b.Min[i] - ls.From[i]) * invD
+			t2 := (b.Max[i] - ls.From[i]) * invD
 
 			if t1 > t2 {
 				t1, t2 = t2, t1
@@ -280,9 +280,9 @@ func buildPrecomputed[V Bounded](pre []precomputed, primitives []V) (*BVH[V], bo
 	bestCost := math.Inf(1)
 
 	for axis := 0; axis < 3; axis++ {
-		step := (bvhBounds.Upper[axis] - bvhBounds.Lower[axis]) / 4.0
+		step := (bvhBounds.Max[axis] - bvhBounds.Min[axis]) / 4.0
 
-		for s := bvhBounds.Lower[axis]; s < bvhBounds.Upper[axis]; s += step {
+		for s := bvhBounds.Min[axis]; s < bvhBounds.Max[axis]; s += step {
 			leftCount := 0
 			rightCount := 0
 			var leftBounds AABB
