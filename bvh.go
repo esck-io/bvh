@@ -247,6 +247,14 @@ type precomputed struct {
 }
 
 func Build[V Bounded](primitives []V) *BVH[V] {
+
+	if len(primitives) == 1 {
+		out := BVH[V]{}
+		out.LeftV = &primitives[0]
+		out.B = primitives[0].Bounds()
+		out.C = primitives[0].Centroid()
+	}
+
 	pre := make([]precomputed, len(primitives))
 
 	for i, v := range primitives {
