@@ -20,7 +20,7 @@ func (p TestPrimitive) Bounds() bvh.AABB {
 }
 
 func (p TestPrimitive) Centroid() bvh.Position {
-	return p.bounds.Center()
+	return p.bounds.Centroid()
 }
 
 func TestBVHQuery(t *testing.T) {

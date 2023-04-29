@@ -72,7 +72,11 @@ func (l *bvhLeaf[V]) Query(q Intersecter, out []V) []V {
 	return out
 }
 
-func (b *AABB) Center() Position {
+func (b AABB) Bounds() AABB {
+	return b
+}
+
+func (b *AABB) Centroid() Position {
 
 	center := [3]float64{}
 	center[0] = b.Min[0] + (b.Max[0]-b.Min[0])/2.0
@@ -264,7 +268,7 @@ func buildPrecomputed[V Bounded](pre []precomputed, primitives []V) (*BVH[V], bo
 		out.RightV = &primitives[1]
 		out.B = pre[0].bounds
 		out.B.grow(pre[1].bounds)
-		out.C = out.B.Center()
+		out.C = out.B.Centroid()
 		return out, true
 	}
 
@@ -360,7 +364,7 @@ func buildPrecomputed[V Bounded](pre []precomputed, primitives []V) (*BVH[V], bo
 	}
 
 	out.B = bvhBounds
-	out.C = out.B.Center()
+	out.C = out.B.Centroid()
 
 	return out, true
 }
@@ -374,7 +378,7 @@ func buildLeaf[V Bounded](pre []precomputed, primitives []V) *bvhLeaf[V] {
 		out.B.grow(p.bounds)
 	}
 
-	out.C = out.B.Center()
+	out.C = out.B.Centroid()
 
 	return out
 }
