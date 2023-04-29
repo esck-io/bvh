@@ -14,13 +14,13 @@ type AABB struct {
 }
 
 type Ray struct {
-	Position  Position
-	Direction Direction
+	Position  Position  `json:"position"`
+	Direction Direction `json:"direction"`
 }
 
 type LineSegment struct {
-	From Position
-	To   Position
+	From Position `json:"from"`
+	To   Position `json:"to"`
 }
 
 type Bounded interface {
