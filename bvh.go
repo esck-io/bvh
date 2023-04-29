@@ -57,8 +57,8 @@ func (bvh *bvhLeaf[V]) Centroid() Position {
 	return bvh.C
 }
 
-func (l *bvhLeaf[V]) Contents() []V {
-	return l.Primitives
+func (l *bvhLeaf[V]) Contents(out []V) []V {
+	return append(out, l.Primitives...)
 }
 
 func (l *bvhLeaf[V]) Query(q Intersecter, out []V) []V {
@@ -190,9 +190,7 @@ func (bvh *BVH[V]) Centroid() Position {
 	return bvh.C
 }
 
-func (bvh *BVH[V]) Contents() []V {
-	out := []V{}
-
+func (bvh *BVH[V]) Contents(out []V) []V {
 	if bvh.LeftV != nil {
 		out = append(out, *bvh.LeftV)
 	}
@@ -200,16 +198,16 @@ func (bvh *BVH[V]) Contents() []V {
 		out = append(out, *bvh.RightV)
 	}
 	if bvh.LeftBVH != nil {
-		out = append(out, bvh.LeftBVH.Contents()...)
+		out = bvh.LeftBVH.Contents(out)
 	}
 	if bvh.RightBVH != nil {
-		out = append(out, bvh.RightBVH.Contents()...)
+		out = bvh.RightBVH.Contents(out)
 	}
 	if bvh.LeftLeaf != nil {
-		out = append(out, bvh.LeftLeaf.Contents()...)
+		out = bvh.LeftLeaf.Contents(out)
 	}
 	if bvh.RightLeaf != nil {
-		out = append(out, bvh.RightLeaf.Contents()...)
+		out = bvh.RightLeaf.Contents(out)
 	}
 
 	return out
