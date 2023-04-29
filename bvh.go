@@ -8,9 +8,9 @@ import (
 type Position [3]float64
 type Direction [3]float64
 
-type Bounds struct {
-	Upper Position
-	Lower Position
+type AABB struct {
+	Upper Position `json:"upper"`
+	Lower Position `json:"lower"`
 }
 
 type Ray struct {
@@ -24,42 +24,46 @@ type LineSegment struct {
 }
 
 type Bounded interface {
-	Bounds() Bounds
+	Bounds() AABB
 	Centroid() Position
 }
 
 type BVH[V Bounded] struct {
-	left     Bounded
-	right    Bounded
-	bounds   Bounds
-	centroid Position
+	LeftBVH   *BVH[V]     `json:"leftbvh"`
+	RightBVH  *BVH[V]     `json:"rightbvh"`
+	LeftV     *V          `json:"leftv"`
+	RightV    *V          `json:"rightv"`
+	LeftLeaf  *bvhLeaf[V] `json:"leftleaf"`
+	RightLeaf *bvhLeaf[V] `json:"rightleaf"`
+	B         AABB        `json:"bounds"`
+	C         Position    `json:"centroid"`
 }
 
 type Intersecter interface {
-	Intersects(b Bounds) bool
+	Intersects(b AABB) bool
 }
 
 type bvhLeaf[V Bounded] struct {
-	primitives []V
-	bounds     Bounds
-	centroid   Position
+	Primitives []V      `json:"v"`
+	B          AABB     `json:"bounds"`
+	C          Position `json:"centroid"`
 }
 
-func (bvh *bvhLeaf[V]) Bounds() Bounds {
-	return bvh.bounds
+func (bvh *bvhLeaf[V]) Bounds() AABB {
+	return bvh.B
 }
 
 func (bvh *bvhLeaf[V]) Centroid() Position {
-	return bvh.centroid
+	return bvh.C
 }
 
 func (l *bvhLeaf[V]) Contents() []V {
-	return l.primitives
+	return l.Primitives
 }
 
 func (l *bvhLeaf[V]) Query(q Intersecter, out []V) []V {
 
-	for _, v := range l.primitives {
+	for _, v := range l.Primitives {
 		if q.Intersects(v.Bounds()) {
 			out = append(out, v)
 		}
@@ -68,7 +72,7 @@ func (l *bvhLeaf[V]) Query(q Intersecter, out []V) []V {
 	return out
 }
 
-func (b *Bounds) Center() Position {
+func (b *AABB) Center() Position {
 
 	center := [3]float64{}
 	center[0] = b.Lower[0] + (b.Upper[0]-b.Lower[0])/2.0
@@ -77,7 +81,7 @@ func (b *Bounds) Center() Position {
 	return center
 }
 
-func (b *Bounds) SurfaceArea() float64 {
+func (b *AABB) SurfaceArea() float64 {
 	dims := [3]float64{}
 	dims[0] = b.Upper[0] - b.Lower[0]
 	dims[1] = b.Upper[1] - b.Lower[1]
@@ -86,7 +90,7 @@ func (b *Bounds) SurfaceArea() float64 {
 	return 2 * (dims[0]*dims[1] + dims[0]*dims[2] + dims[1]*dims[2])
 }
 
-func (b *Bounds) Intersects(other *Bounds) bool {
+func (b *AABB) Intersects(other *AABB) bool {
 	for i := 0; i < 3; i++ {
 		if b.Upper[i] < other.Lower[i] || b.Lower[i] > other.Upper[i] {
 			return false
@@ -95,7 +99,7 @@ func (b *Bounds) Intersects(other *Bounds) bool {
 	return true
 }
 
-func (b *Bounds) grow(other Bounds) {
+func (b *AABB) grow(other AABB) {
 	if other.Upper[0] > b.Upper[0] {
 		b.Upper[0] = other.Upper[0]
 	}
@@ -116,7 +120,7 @@ func (b *Bounds) grow(other Bounds) {
 	}
 }
 
-func (r *Ray) Intersects(b Bounds) bool {
+func (r *Ray) Intersects(b AABB) bool {
 	tmin := -math.MaxFloat64
 	tmax := math.MaxFloat64
 
@@ -146,7 +150,7 @@ func (r *Ray) Intersects(b Bounds) bool {
 	return true
 }
 
-func (ls *LineSegment) Intersects(b Bounds) bool {
+func (ls *LineSegment) Intersects(b AABB) bool {
 	tmin := -math.MaxFloat64
 	tmax := math.MaxFloat64
 
@@ -178,42 +182,34 @@ func (ls *LineSegment) Intersects(b Bounds) bool {
 	return true
 }
 
-func (bvh *BVH[V]) Bounds() Bounds {
-	return bvh.bounds
+func (bvh *BVH[V]) Bounds() AABB {
+	return bvh.B
 }
 
 func (bvh *BVH[V]) Centroid() Position {
-	return bvh.centroid
+	return bvh.C
 }
 
 func (bvh *BVH[V]) Contents() []V {
 	out := []V{}
 
-	leftV, ok := bvh.left.(V)
-	if ok {
-		out = append(out, leftV)
+	if bvh.LeftV != nil {
+		out = append(out, *bvh.LeftV)
 	}
-	rightV, ok := bvh.right.(V)
-	if ok {
-		out = append(out, rightV)
+	if bvh.RightV != nil {
+		out = append(out, *bvh.RightV)
 	}
-
-	leftBVH, ok := bvh.left.(*BVH[V])
-	if ok {
-		out = append(out, leftBVH.Contents()...)
+	if bvh.LeftBVH != nil {
+		out = append(out, bvh.LeftBVH.Contents()...)
 	}
-	rightBVH, ok := bvh.right.(*BVH[V])
-	if ok {
-		out = append(out, rightBVH.Contents()...)
+	if bvh.RightBVH != nil {
+		out = append(out, bvh.RightBVH.Contents()...)
 	}
-
-	leftLeaf, ok := bvh.left.(*bvhLeaf[V])
-	if ok {
-		out = append(out, leftLeaf.Contents()...)
+	if bvh.LeftLeaf != nil {
+		out = append(out, bvh.LeftLeaf.Contents()...)
 	}
-	rightLeaf, ok := bvh.right.(*bvhLeaf[V])
-	if ok {
-		out = append(out, rightLeaf.Contents()...)
+	if bvh.RightLeaf != nil {
+		out = append(out, bvh.RightLeaf.Contents()...)
 	}
 
 	return out
@@ -221,34 +217,23 @@ func (bvh *BVH[V]) Contents() []V {
 
 func (bvh *BVH[V]) Query(q Intersecter, out []V) []V {
 
-	leftIntersects := q.Intersects(bvh.left.Bounds())
-	rightIntersects := q.Intersects(bvh.right.Bounds())
-
-	leftV, ok := bvh.left.(V)
-	if ok && leftIntersects {
-		out = append(out, leftV)
+	if bvh.LeftV != nil && q.Intersects((*bvh.LeftV).Bounds()) {
+		out = append(out, *bvh.LeftV)
 	}
-	rightV, ok := bvh.right.(V)
-	if ok && rightIntersects {
-		out = append(out, rightV)
+	if bvh.RightV != nil && q.Intersects((*bvh.RightV).Bounds()) {
+		out = append(out, *bvh.RightV)
 	}
-
-	leftBVH, ok := bvh.left.(*BVH[V])
-	if ok && leftIntersects {
-		out = leftBVH.Query(q, out)
+	if bvh.LeftBVH != nil && q.Intersects(bvh.LeftBVH.B) {
+		out = bvh.LeftBVH.Query(q, out)
 	}
-	rightBVH, ok := bvh.right.(*BVH[V])
-	if ok && rightIntersects {
-		out = rightBVH.Query(q, out)
+	if bvh.RightBVH != nil && q.Intersects(bvh.RightBVH.B) {
+		out = bvh.RightBVH.Query(q, out)
 	}
-
-	leftLeaf, ok := bvh.left.(*bvhLeaf[V])
-	if ok && leftIntersects {
-		out = leftLeaf.Query(q, out)
+	if bvh.LeftLeaf != nil && q.Intersects(bvh.LeftLeaf.B) {
+		out = bvh.LeftLeaf.Query(q, out)
 	}
-	rightLeaf, ok := bvh.right.(*bvhLeaf[V])
-	if ok && rightIntersects {
-		out = rightLeaf.Query(q, out)
+	if bvh.RightLeaf != nil && q.Intersects(bvh.RightLeaf.B) {
+		out = bvh.RightLeaf.Query(q, out)
 	}
 
 	return out
@@ -256,7 +241,7 @@ func (bvh *BVH[V]) Query(q Intersecter, out []V) []V {
 
 type precomputed struct {
 	centroid Position
-	bounds   Bounds
+	bounds   AABB
 }
 
 func Build[V Bounded](primitives []V, depth int) *BVH[V] {
@@ -277,11 +262,11 @@ func buildPrecomputed[V Bounded](pre []precomputed, primitives []V) (*BVH[V], bo
 	out := &BVH[V]{}
 
 	if len(pre) == 2 {
-		out.left = primitives[0]
-		out.right = primitives[1]
-		out.bounds = pre[0].bounds
-		out.bounds.grow(pre[1].bounds)
-		out.centroid = out.bounds.Center()
+		out.LeftV = &primitives[0]
+		out.RightV = &primitives[1]
+		out.B = pre[0].bounds
+		out.B.grow(pre[1].bounds)
+		out.C = out.B.Center()
 		return out, true
 	}
 
@@ -302,9 +287,9 @@ func buildPrecomputed[V Bounded](pre []precomputed, primitives []V) (*BVH[V], bo
 		for s := bvhBounds.Lower[axis]; s < bvhBounds.Upper[axis]; s += step {
 			leftCount := 0
 			rightCount := 0
-			var leftBounds Bounds
-			var rightBounds Bounds
-			var zeroBounds Bounds
+			var leftBounds AABB
+			var rightBounds AABB
+			var zeroBounds AABB
 
 			for _, p := range pre {
 				if p.centroid[axis] < s {
@@ -354,44 +339,44 @@ func buildPrecomputed[V Bounded](pre []precomputed, primitives []V) (*BVH[V], bo
 	rightPrimitives := primitives[bestLeftCount:]
 
 	if len(leftPre) == 1 {
-		out.left = leftPrimitives[0]
+		out.LeftV = &leftPrimitives[0]
 	} else {
 		leftTree, ok := buildPrecomputed(leftPre, leftPrimitives)
 		if ok {
-			out.left = leftTree
+			out.LeftBVH = leftTree
 		} else {
-			out.left = buildLeaf(leftPre, leftPrimitives)
+			out.LeftLeaf = buildLeaf(leftPre, leftPrimitives)
 		}
 
 	}
 
 	if len(rightPre) == 1 {
-		out.right = rightPrimitives[0]
+		out.RightV = &rightPrimitives[0]
 	} else {
 		rightTree, ok := buildPrecomputed(rightPre, rightPrimitives)
 		if ok {
-			out.right = rightTree
+			out.RightBVH = rightTree
 		} else {
-			out.right = buildLeaf(rightPre, rightPrimitives)
+			out.RightLeaf = buildLeaf(rightPre, rightPrimitives)
 		}
 	}
 
-	out.bounds = bvhBounds
-	out.centroid = out.bounds.Center()
+	out.B = bvhBounds
+	out.C = out.B.Center()
 
 	return out, true
 }
 
 func buildLeaf[V Bounded](pre []precomputed, primitives []V) *bvhLeaf[V] {
 	out := &bvhLeaf[V]{}
-	out.primitives = primitives
+	out.Primitives = primitives
 
-	out.bounds = pre[0].bounds
+	out.B = pre[0].bounds
 	for _, p := range pre {
-		out.bounds.grow(p.bounds)
+		out.B.grow(p.bounds)
 	}
 
-	out.centroid = out.bounds.Center()
+	out.C = out.B.Center()
 
 	return out
 }
