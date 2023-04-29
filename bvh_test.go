@@ -48,7 +48,7 @@ func TestBVHQuery(t *testing.T) {
 		},
 	}
 
-	tree := bvh.Build(primitives, BVH_DEPTH)
+	tree := bvh.Build(primitives)
 
 	tests := []struct {
 		name     string
@@ -201,7 +201,7 @@ func generateRandomPrimitives(numPrimitives int) []TestPrimitive {
 func BenchmarkBVHQuery(b *testing.B) {
 	numPrimitives := 100000
 	primitives := generateRandomPrimitives(numPrimitives)
-	tree := bvh.Build(primitives, BVH_DEPTH)
+	tree := bvh.Build(primitives)
 
 	query := &bvh.LineSegment{
 		From: bvh.Position{0, 0, 0},
@@ -242,6 +242,6 @@ func BenchmarkBuild(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_ = bvh.Build(primitives, BVH_DEPTH)
+		_ = bvh.Build(primitives)
 	}
 }

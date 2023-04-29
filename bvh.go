@@ -246,7 +246,7 @@ type precomputed struct {
 	bounds   AABB
 }
 
-func Build[V Bounded](primitives []V, depth int) *BVH[V] {
+func Build[V Bounded](primitives []V) *BVH[V] {
 	pre := make([]precomputed, len(primitives))
 
 	for i, v := range primitives {
