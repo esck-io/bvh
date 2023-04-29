@@ -76,7 +76,7 @@ func (b AABB) Bounds() AABB {
 	return b
 }
 
-func (b *AABB) Centroid() Position {
+func (b AABB) Centroid() Position {
 
 	center := [3]float64{}
 	center[0] = b.Min[0] + (b.Max[0]-b.Min[0])/2.0
@@ -94,7 +94,7 @@ func (b *AABB) SurfaceArea() float64 {
 	return 2 * (dims[0]*dims[1] + dims[0]*dims[2] + dims[1]*dims[2])
 }
 
-func (b *AABB) Intersects(other *AABB) bool {
+func (b AABB) Intersects(other *AABB) bool {
 	for i := 0; i < 3; i++ {
 		if b.Max[i] < other.Min[i] || b.Min[i] > other.Max[i] {
 			return false
