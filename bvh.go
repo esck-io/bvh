@@ -248,6 +248,10 @@ type precomputed struct {
 
 func Build[V Bounded](primitives []V) *BVH[V] {
 
+	if len(primitives) == 0 {
+		return &BVH[V]{}
+	}
+
 	if len(primitives) == 1 {
 		out := BVH[V]{}
 		out.LeftV = &primitives[0]
