@@ -253,6 +253,7 @@ func Build[V Bounded](primitives []V) *BVH[V] {
 		out.LeftV = &primitives[0]
 		out.B = primitives[0].Bounds()
 		out.C = primitives[0].Centroid()
+		return &out
 	}
 
 	pre := make([]precomputed, len(primitives))
